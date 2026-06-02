@@ -4,40 +4,33 @@ import pickle
 
 # ---------------- LOAD MODEL ---------------- #
 model = pickle.load(open("model.pkl", "rb"))
+features = pickle.load(open("features.pkl", "rb"))
 
 st.set_page_config(page_title="Customer Churn Prediction", layout="centered")
 
 st.title("📊 Customer Churn Prediction System")
-st.write("Enter customer details to predict whether they will leave or stay")
+st.write("Enter customer details below:")
 
-# ---------------- INPUT FIELDS ---------------- #
-age = st.number_input("Age", 18, 100)
-tenure = st.number_input("Tenure (months)", 0, 72)
-monthly_charges = st.number_input("Monthly Charges", 0, 500)
-total_charges = st.number_input("Total Charges", 0, 10000)
+# ---------------- INPUTS ---------------- #
+inputs = []
 
-# You can extend these later
-contract = st.selectbox("Contract Type", ["Month-to-month", "One year", "Two year"])
-internet = st.selectbox("Internet Service", ["DSL", "Fiber optic", "No"])
+for feature in features:
+    val = st.number_input(f"{feature}", value=0.0)
+    inputs.append(val)
 
-# ---------------- ENCODING SIMPLE INPUT ---------------- #
-contract_map = {"Month-to-month": 0, "One year": 1, "Two year": 2}
-internet_map = {"DSL": 0, "Fiber optic": 1, "No": 2}
-
-input_data = np.array([[
-    age,
-    tenure,
-    monthly_charges,
-    total_charges,
-    contract_map[contract],
-    internet_map[internet]
-]])
+input_data = np.array([inputs])
 
 # ---------------- PREDICTION ---------------- #
-if st.button("Predict Churn"):
+if st.button("Predict"):
     prediction = model.predict(input_data)[0]
+    probability = model.predict_proba(input_data)[0][1]
+
+    st.write("### Result:")
 
     if prediction == 1:
-        st.error("⚠ Customer is likely to CHURN")
+        st.error("⚠ Customer will CHURN")
     else:
         st.success("✅ Customer will STAY")
+
+    st.write("### Churn Probability:")
+    st.info(f"{probability:.2f}")
