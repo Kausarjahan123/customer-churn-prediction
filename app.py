@@ -2,6 +2,8 @@ import streamlit as st
 import numpy as np
 import pickle
 import os
+import matplotlib.pyplot as plt
+import pandas as pd
 
 # ---------------- LOAD MODEL SAFELY ---------------- #
 model_path = os.path.join(os.path.dirname(__file__), "model.pkl")
@@ -13,13 +15,14 @@ features = pickle.load(open(features_path, "rb"))
 # ---------------- PAGE CONFIG ---------------- #
 st.set_page_config(page_title="Customer Churn AI", layout="wide")
 
-# ---------------- PREMIUM UI ---------------- #
+# ---------------- NETFLIX STYLE UI ---------------- #
 st.markdown("""
 <style>
 
 .stApp {
     background: linear-gradient(135deg, #0b0f19, #111827);
     color: white;
+    font-family: Arial;
 }
 
 /* TITLE */
@@ -28,11 +31,10 @@ h1 {
     color: #ff1e1e !important;
     font-size: 54px;
     font-weight: 900;
-    text-shadow: 2px 2px 10px rgba(255,0,0,0.4);
 }
 
-/* TEXT */
-p, label {
+/* SUB TEXT */
+h2, h3, p, label {
     color: white !important;
     font-weight: 600;
 }
@@ -60,19 +62,15 @@ input {
     height: 50px;
     font-size: 18px;
     font-weight: 900;
-    border: none;
-    box-shadow: 0px 4px 15px rgba(255, 0, 0, 0.4);
 }
 
 .stButton > button:hover {
-    background: #ff0000;
     transform: scale(1.02);
 }
 
 /* RESULT BOX */
 .stAlert {
     background-color: #111827 !important;
-    color: white !important;
     border-left: 5px solid #ff1e1e !important;
     font-weight: bold;
 }
@@ -85,9 +83,9 @@ input {
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------- TITLE ---------------- #
-st.title("🎬 Customer Churn AI System")
-st.markdown("<h3 style='text-align:center; color:white;'>Predict whether a customer will stay or leave</h3>", unsafe_allow_html=True)
+# ---------------- HEADER ---------------- #
+st.title("🎬 Customer Churn AI Dashboard")
+st.markdown("<h3 style='text-align:center;'>AI-powered churn prediction system</h3>", unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -110,6 +108,20 @@ def encode(val):
     }
     return mapping.get(val, val)
 
+# ---------------- FEATURE IMPORTANCE ---------------- #
+def show_feature_importance():
+    importance = model.feature_importances_
+
+    df_imp = pd.DataFrame({
+        "Feature": features,
+        "Importance": importance
+    }).sort_values(by="Importance")
+
+    fig, ax = plt.subplots()
+    ax.barh(df_imp["Feature"], df_imp["Importance"], color="red")
+    ax.set_title("Feature Importance")
+    st.pyplot(fig)
+
 # ---------------- INPUT UI ---------------- #
 col1, col2 = st.columns(2)
 
@@ -118,7 +130,7 @@ with col1:
     SeniorCitizen = st.selectbox("Senior Citizen", [0, 1])
     Partner = st.selectbox("Partner", ["Yes", "No"])
     Dependents = st.selectbox("Dependents", ["Yes", "No"])
-    tenure = st.number_input("Tenure (months)", 0, 100)
+    tenure = st.number_input("Tenure", 0, 100)
     PhoneService = st.selectbox("Phone Service", ["Yes", "No"])
     MultipleLines = st.selectbox("Multiple Lines", ["Yes", "No", "No phone service"])
     InternetService = st.selectbox("Internet Service", ["DSL", "Fiber optic", "No"])
@@ -177,7 +189,19 @@ if st.button("🚀 Predict Churn"):
     else:
         st.success("✅ Customer will STAY")
 
-    st.markdown("## 📊 Churn Probability")
-    st.info(f"{probability * 100:.2f}%")
-
+    st.markdown("## 📊 Confidence Score")
+    st.metric("Churn Probability", f"{probability*100:.2f}%")
     st.progress(float(probability))
+
+    st.markdown("## 🧠 AI Explanation")
+
+    if prediction == 1:
+        st.write("Customer is likely to churn due to behavioral patterns such as contract type, tenure, and charges.")
+    else:
+        st.write("Customer shows stable long-term engagement and low churn risk.")
+
+# ---------------- FEATURE IMPORTANCE TOGGLE ---------------- #
+st.markdown("---")
+
+if st.checkbox("📊 Show Feature Importance"):
+    show_feature_importance()
